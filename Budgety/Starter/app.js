@@ -12,6 +12,14 @@ var budgetController = (function() {
     this.value = value;
   };
 
+  var calculateTotal = function(type) {
+    var sum = 0;
+    data.allItems[type].forEach(function(cur) {
+      sum += cur.value;
+    });
+    data.totals[type] = sum;
+  };
+
   var data = {
     allItems: {
       exp: [],
@@ -20,7 +28,9 @@ var budgetController = (function() {
     totals: {
       exp: 0,
       inc: 0
-    }
+    },
+    budget: 0,
+    percentage: -1
   };
 
   return {
@@ -43,6 +53,32 @@ var budgetController = (function() {
       //return new element
       return newItem;
     },
+
+    calcuateBudget: function() {
+      //calc total income and expenses
+      calculateTotal("exp");
+      calculateTotal("inc");
+
+      // calc he budget: income - exp
+      data.budget = data.totals.inc - data.totals.exp;
+
+      // calc the percentage of inc that we spend
+      if (data.totals.inc > 0) {
+        data.percentage = Math.round((data.totals.exp / data.totals.inc) * 100);
+      } else {
+        data.percentage = -1;
+      }
+    },
+
+    getBudget: function() {
+      return {
+        budget: data.budget,
+        totalInc: data.totals.inc,
+        totalExp: data.totals.exp,
+        percentage: data.percentage
+      };
+    },
+
     testing: function() {
       console.log(data);
     }
@@ -56,14 +92,19 @@ var UIController = (function() {
     inputValue: ".add__value",
     inputBtn: ".add__btn",
     incomeContainer: ".income__list",
-    expensesContainer: ".expenses__list"
+    expensesContainer: ".expenses__list",
+    budgetLabel: ".budget__value",
+    incomeLabel: ".budget__income--value",
+    expensesLabel: ".budget__expenses--value",
+    percentageLabel: ".budget__expenses--percentage"
   };
+
   return {
     getInput: function() {
       return {
         type: document.querySelector(DOMstrings.inputType).value, // will be either inc or exp
         description: document.querySelector(DOMstrings.inputDescription).value,
-        value: document.querySelector(DOMstrings.inputValue).value
+        value: parseFloat(document.querySelector(DOMstrings.inputValue).value)
       };
     },
 
@@ -77,7 +118,7 @@ var UIController = (function() {
       } else if (type === "exp") {
         element = DOMstrings.expensesContainer;
         html =
-          '<div class="item clearfix" id="expense-%id%"><div class="item__description">%description%</div><div class="right clearfix"><div class="item__value">%value%</div><div class="item__percentage">%percentage%</div><div class="item__delete"><button class="item__delete--btn"><i class="ion-ios-close-outline"></i></button></div></div></div>';
+          '<div class="item clearfix" id="expense-%id%"><div class="item__description">%description%</div><div class="right clearfix"><div class="item__value">%value%</div><div class="item__percentage">21%</div><div class="item__delete"><button class="item__delete--btn"><i class="ion-ios-close-outline"></i></button></div></div></div>';
       }
       newHtml = html.replace("%id%", obj.id);
       newHtml = newHtml.replace("%description%", obj.description);
@@ -101,6 +142,19 @@ var UIController = (function() {
       fieldsArray[0].focus();
     },
 
+    displayBudget: function(obj) {
+      document.querySelector(DOMstrings.budgetLabel).textContent = obj.budget;
+      document.querySelector(DOMstrings.incomeLabel).textContent = obj.totalInc;
+      document.querySelector(DOMstrings.expensesLabel).textContent =
+        obj.totalExp;
+      if (obj.percentage > 0) {
+        document.querySelector(DOMstrings.percentageLabel).textContent =
+          obj.percentage + "%";
+      } else {
+        document.querySelector(DOMstrings.percentageLabel).textContent = "---";
+      }
+    },
+
     getDOMstrings: function() {
       return DOMstrings;
     }
@@ -121,29 +175,45 @@ var controller = (function(budgetCtrl, UICtrl) {
     });
   };
 
+  var UpdateBudget = function() {
+    // calcuate the budget
+    budgetCtrl.calcuateBudget();
+    // return the budget
+    var budget = budgetCtrl.getBudget();
+    // display the budget on the UI
+    UICtrl.displayBudget(budget);
+  };
+
   var ctrlAddItem = function() {
     var input, newItem;
     // get field input data
     input = UICtrl.getInput();
     console.log(input);
 
-    // add the item to budget controller
-    newItem = budgetCtrl.addItem(input.type, input.description, input.value);
-    // add the item to the UI
-    UICtrl.addListItem(newItem, input.type);
+    if (input.description !== "" && !isNaN(input.value) && input.value > 0) {
+      // add the item to budget controller
+      newItem = budgetCtrl.addItem(input.type, input.description, input.value);
 
-    //clear fields
+      // add the item to the UI
+      UICtrl.addListItem(newItem, input.type);
 
-    UICtrl.clearFields();
+      //clear fields
+      UICtrl.clearFields();
 
-    // calcuate the budget
-
-    // display the budget
+      //calculate and update budget
+      UpdateBudget();
+    }
   };
 
   return {
     init: function() {
       console.log("app has started");
+      UICtrl.displayBudget({
+        budget: 0,
+        totalInc: 0,
+        totalExp: 0,
+        percentage: -1
+      });
       setupEventListeners();
     }
   };
