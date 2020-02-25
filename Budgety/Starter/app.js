@@ -60,7 +60,6 @@ var UIController = (function() {
   };
   return {
     getInput: function() {
-      console.log("hello");
       return {
         type: document.querySelector(DOMstrings.inputType).value, // will be either inc or exp
         description: document.querySelector(DOMstrings.inputDescription).value,
@@ -87,6 +86,19 @@ var UIController = (function() {
       //replace placeholder text with actual data
       // insert html into the dom
       document.querySelector(element).insertAdjacentHTML("beforeend", newHtml);
+    },
+
+    clearFields: function() {
+      var fields, fieldsArray;
+      fields = document.querySelectorAll(
+        DOMstrings.inputDescription + "," + DOMstrings.inputValue
+      );
+
+      fieldsArray = Array.prototype.slice.call(fields);
+      fieldsArray.forEach(function(current, index, array) {
+        current.value = "";
+      });
+      fieldsArray[0].focus();
     },
 
     getDOMstrings: function() {
@@ -119,6 +131,10 @@ var controller = (function(budgetCtrl, UICtrl) {
     newItem = budgetCtrl.addItem(input.type, input.description, input.value);
     // add the item to the UI
     UICtrl.addListItem(newItem, input.type);
+
+    //clear fields
+
+    UICtrl.clearFields();
 
     // calcuate the budget
 
