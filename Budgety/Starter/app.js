@@ -277,7 +277,7 @@ var UIController = (function() {
 
       year = now.getFullYear();
       document.querySelector(DOMstrings.dateLabel).textContent =
-        months[month] + year;
+        months[month] + " " + year;
     },
 
     changedType: function() {
